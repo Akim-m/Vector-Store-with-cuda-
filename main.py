@@ -1,51 +1,53 @@
 from vstore import VectorStore
 import numpy as np
 
-# Create a VectorStore instance
 vector_store = VectorStore()
+corpus = []
+vocabulary = set()
+word_to_index = {}
 
-# Define your sentences
-sentences = [
-    "I eat mango",
-    "mango is my favorite fruit",
-    "mango, apple, oranges are fruits",
-    "fruits are good for health",
+def update_vocabulary(sentences):
+    global vocabulary, word_to_index
+    for sentence in sentences:
+        tokens = sentence.lower().split()
+        vocabulary.update(tokens)
+    word_to_index = {word: i for i, word in enumerate(vocabulary)}
+
+
+def vectorize_sentence(sentence):
+    vector = np.zeros(len(vocabulary))
+    tokens = sentence.lower().split()
+    for token in tokens:
+        if token in word_to_index:
+            vector[word_to_index[token]] += 1
+    return vector
+
+def add_sentences_to_vector_store(sentences):
+    global corpus
+    corpus.extend(sentences)
+    for sentence in sentences:
+        vector = vectorize_sentence(sentence)
+        vector_store.add_vector(sentence, vector)
+
+def find_similar_sentences(query_sentence, num_results=2):
+    query_vector = vectorize_sentence(query_sentence)
+    similar_sentences = vector_store.find_similar_vectors(query_vector, num_results=num_results)
+    print("Query Sentence:", query_sentence)
+    print("Similar Sentences:")
+    for sentence, similarity in similar_sentences:
+        print(f"{sentence}: Similarity = {similarity:.4f}")
+
+
+initial_sentences = [
+    "Friendship is everything. Friendship is more than talent. It is more than the government. It is almost the equal of family",
+    "Great men are not born great, they grow great",
+    "Never hate your enemies. It affects your judgment",
+    "Revenge is a dish that tastes best when served cold"
 ]
 
-# Tokenization and Vocabulary Creation
-vocabulary = set()
-for sentence in sentences:
-    tokens = sentence.lower().split()
-    vocabulary.update(tokens)
+update_vocabulary(initial_sentences)
 
-# Assign unique indices to words in the vocabulary
-word_to_index = {word: i for i, word in enumerate(vocabulary)}
+add_sentences_to_vector_store(initial_sentences)
 
-# Vectorization
-sentence_vectors = {}
-for sentence in sentences:
-    tokens = sentence.lower().split()
-    vector = np.zeros(len(vocabulary))
-    for token in tokens:
-        vector[word_to_index[token]] += 1
-    sentence_vectors[sentence] = vector
-
-# Storing in VectorStore
-for sentence, vector in sentence_vectors.items():
-    vector_store.add_vector(sentence, vector)
-
-# Searching for Similarity
-query_sentence = "Mango is the best fruit"
-query_vector = np.zeros(len(vocabulary))
-query_tokens = query_sentence.lower().split()
-for token in query_tokens:
-    if token in word_to_index:
-        query_vector[word_to_index[token]] += 1
-
-similar_sentences = vector_store.find_similar_vectors(query_vector, num_results=2)
-
-# Print similar sentences
-print("Query Sentence:", query_sentence)
-print("Similar Sentences:")
-for sentence, similarity in similar_sentences:
-    print(f"{sentence}: Similarity = {similarity:.4f}")
+query_sentence = "is a dish "
+find_similar_sentences(query_sentence)
